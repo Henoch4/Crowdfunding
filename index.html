@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crowdfunding — Fund it, or get it back</title>
+<meta name="description" content="All-or-nothing campaigns on BOT Chain. Pledge natively, release when the goal is met, reclaim automatically when it is not.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#fdf8f4; --ink:#26150e; --mut:#7c6357; --line:#eedbcd; --card:#fffdfb;
+  --rust:#c2410c; --rust-soft:#fbe9de; --teal:#0f766e; --ink-soft:#4a3227;
+  --r:18px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:'Bricolage Grotesque','Inter',sans-serif;letter-spacing:-.025em;margin:0}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+input,textarea{font:inherit;color:inherit}
+.mono{font-family:ui-monospace,'SF Mono',Menlo,monospace}
+.wrap{max-width:1120px;margin:0 auto;padding:0 clamp(16px,4vw,44px)}
+
+/* top strip */
+.strip{border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(253,248,244,.92);backdrop-filter:blur(10px);z-index:30}
+.strip .in{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:16px;letter-spacing:-.03em}
+.logo span{display:grid;place-items:center;width:27px;height:27px;border-radius:8px;background:var(--rust);color:#fff;font-size:14px}
+.tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pillnet{display:inline-flex;padding:3px;background:var(--rust-soft);border-radius:99px;font-size:11px}
+.pillnet button{padding:5px 11px;border-radius:99px;color:var(--rust);font-weight:600;letter-spacing:.04em}
+.pillnet button.on{background:var(--rust);color:#fff}
+.pillnet button:disabled{opacity:.4;cursor:not-allowed}
+.wbtn{background:var(--ink);color:#fff;padding:9px 15px;border-radius:10px;font-size:13px;font-weight:600;transition:.16s}
+.wbtn:hover{background:#3b2418}
+.waddr{font-size:12.5px;color:var(--mut);display:flex;align-items:center;gap:7px}
+.dot{width:7px;height:7px;border-radius:50%;background:#b42318}
+.dot.on{background:var(--teal)}
+
+/* masthead — asymmetric magazine */
+.mast{display:grid;grid-template-columns:1.35fr .65fr;gap:30px;padding:56px 0 40px;align-items:start}
+.mast .kicker{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--rust);font-weight:700}
+.mast h1{font-size:clamp(42px,7.5vw,86px);font-weight:800;line-height:.9;letter-spacing:-.045em;margin-top:12px;max-width:12ch}
+.mast h1 u{text-decoration:none;color:var(--rust)}
+.mast p{color:var(--mut);font-size:16px;line-height:1.7;margin-top:20px;max-width:48ch}
+.stats{border-left:2px solid var(--line);padding-left:22px;display:grid;gap:18px;margin-top:8px}
+.stats div small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin-bottom:3px}
+.stats div b{font-family:'Bricolage Grotesque',sans-serif;font-size:30px;font-weight:700;letter-spacing:-.03em}
+
+/* featured */
+.featured{background:linear-gradient(135deg,#2a160e,#432114);color:#fdf8f4;border-radius:var(--r);padding:30px;display:grid;grid-template-columns:1.2fr .8fr;gap:26px;margin-bottom:34px;position:relative;overflow:hidden}
+.featured::after{content:"";position:absolute;inset:auto -60px -100px auto;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(194,65,12,.45),transparent 68%)}
+.featured .tagline{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#f0a97f;font-weight:700}
+.featured h2{font-size:clamp(26px,3.4vw,40px);font-weight:800;line-height:1.02;margin:10px 0 12px}
+.featured p{color:#d9bcab;font-size:14.5px;line-height:1.65;margin:0}
+.featured .side{display:flex;flex-direction:column;justify-content:center;gap:12px;position:relative;z-index:1}
+
+/* progress */
+.bar{height:7px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--rust),#e2683a);transition:width .5s}
+.featured .bar{background:rgba(255,255,255,.16)}
+.featured .bar i{background:linear-gradient(90deg,#f0a97f,#c2410c)}
+.pctrow{display:flex;justify-content:space-between;font-size:12.5px;color:var(--mut)}
+.featured .pctrow{color:#d9bcab}
+
+/* campaign grid */
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin:0 0 18px;flex-wrap:wrap}
+.sec-head h2{font-size:26px;font-weight:700}
+.sec-head span{font-size:13px;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:18px}
+.camp{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:13px;transition:.18s}
+.camp:hover{box-shadow:0 14px 32px rgba(38,21,14,.07);transform:translateY(-2px)}
+.camp .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.camp .num{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);font-weight:700}
+.badge{font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:99px;font-weight:700}
+.badge.open{background:var(--rust-soft);color:var(--rust)}
+.badge.funded{background:#e3f3f0;color:var(--teal)}
+.badge.failed{background:#f4ece6;color:#8a7568}
+.camp h3{font-size:20px;font-weight:700;line-height:1.2}
+.camp .desc{font-size:13px;color:var(--mut);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bignum{font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.03em}
+.bignum small{font-size:12px;font-weight:500;color:var(--mut);letter-spacing:0}
+.actions{display:flex;gap:8px;margin-top:auto;flex-wrap:wrap}
+.assign{display:flex;gap:7px;flex:1;min-width:150px}
+.assign input{flex:1;min-width:0;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.assign input:focus{outline:2px solid rgba(194,65,12,.25);border-color:var(--rust)}
+.btn{background:var(--rust);color:#fff;font-weight:700;font-size:13.5px;padding:10px 16px;border-radius:10px;transition:.16s}
+.btn:hover{filter:brightness(1.1)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.teal{background:var(--teal)}
+.btn.line{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:600}
+.btn.line:hover{border-color:var(--rust);color:var(--rust)}
+.empty{border:1px dashed var(--line);border-radius:var(--r);padding:44px;text-align:center;color:var(--mut);font-size:14px}
+
+/* launch form */
+.launch{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:28px;margin:44px 0 0}
+.launch h2{font-size:24px;margin-bottom:4px}
+.launch .sub{color:var(--mut);font-size:13.5px;margin:0 0 22px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:grid;gap:7px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);font-weight:700}
+label.full{grid-column:1/-1}
+input,textarea{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-size:14px;width:100%;resize:vertical}
+input:focus,textarea:focus{outline:2px solid rgba(194,65,12,.25);border-color:var(--rust)}
+.launch .btn{width:100%;padding:13px;margin-top:16px}
+.note{font-size:12.5px;color:var(--mut);margin:12px 0 0;line-height:1.6}
+
+footer{border-top:1px solid var(--line);margin-top:52px;padding:24px 0 34px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--mut);align-items:center}
+footer b{color:var(--ink)}
+footer a{color:var(--rust);text-decoration:none;border-bottom:1px solid rgba(194,65,12,.3)}
+.fl{display:flex;align-items:center;gap:9px}
+.fl svg{width:17px;height:17px;flex:none}
+.fr{display:flex;gap:13px;flex-wrap:wrap;align-items:center}
+
+#toast{position:fixed;left:50%;bottom:24px;translate:-50% 220%;background:var(--ink);color:var(--paper);padding:13px 22px;border-radius:12px;font-size:13.5px;font-weight:500;transition:.3s cubic-bezier(.2,.9,.2,1);max-width:min(92vw,520px);z-index:60;box-shadow:0 16px 34px rgba(38,21,14,.26)}
+#toast.on{translate:-50% 0}
+#toast.err{background:#b42318;color:#fff}
+
+@media(max-width:880px){
+  .mast{grid-template-columns:1fr;padding:34px 0 26px;gap:22px}
+  .stats{border-left:0;border-top:1px solid var(--line);padding:18px 0 0;grid-template-columns:1fr 1fr;display:grid}
+  .featured{grid-template-columns:1fr}
+  .fields{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="strip">
+  <div class="wrap in">
+    <div class="logo"><span>◈</span>Crowdfunding</div>
+    <div class="tools">
+      <div class="pillnet"><button id="n677" class="on">677</button><button id="n968" disabled title="Testnet pending">968</button></div>
+      <div class="waddr"><span class="dot" id="dot"></span><span class="mono" id="addr">not connected</span></div>
+      <button class="wbtn" id="connect">Connect</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <section class="mast">
+    <div>
+      <div class="kicker">All-or-nothing on BOT Chain</div>
+      <h1>Fund it, or <u>get it back.</u></h1>
+      <p>Creators set a goal and a deadline. Money sits in the contract until the goal is met — then it releases to the creator in one transfer. If the deadline passes short, every backer reclaims their own pledge, no middleman required.</p>
+    </div>
+    <div class="stats">
+      <div><small>Campaigns</small><b id="sCamps">0</b></div>
+      <div><small>Raised on-chain</small><b id="sRaised">0</b></div>
+      <div><small>Backers</small><b id="sBackers">0</b></div>
+    </div>
+  </section>
+
+  <div id="featured"></div>
+
+  <div class="sec-head">
+    <h2>All campaigns</h2>
+    <span id="countLabel">—</span>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <section class="launch">
+    <h2>Start a campaign</h2>
+    <p class="sub">You are the creator — you are the only address that can release the funds once the goal is hit.</p>
+    <div class="fields">
+      <label class="full">Title<input id="cTitle" placeholder="Solar microgrid for 40 homes" maxlength="80" autocomplete="off"></label>
+      <label class="full">What the money buys<textarea id="cDesc" rows="3" placeholder="Panels, inverters and a battery bank for the village co-op." maxlength="280"></textarea></label>
+      <label>Goal (BOT)<input id="cGoal" type="number" step="0.000001" min="0.000001" placeholder="0.005"></label>
+      <label>Window (seconds)<input id="cDur" type="number" min="1" step="1" placeholder="3600"></label>
+    </div>
+    <button class="btn" id="createBtn">Publish campaign</button>
+    <p class="note">The deadline is fixed at publish time and cannot be extended. Short windows are fine — 3600 seconds is one hour.</p>
+  </section>
+
+  <footer>
+    <div class="fl">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="#c2410c" stroke-width="1.7"/><path d="M12 7v10M9.5 9.5h3.7a1.8 1.8 0 0 1 0 3.6H9.5" stroke="#0f766e" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span><b>BOT Chain</b> · Crowdfunding</span>
+    </div>
+    <div class="fr">
+      <span>Chain ID 677</span>
+      <span class="mono">0x6a1A0ddb22358597609aA6f9a70deE61818e13Ff</span>
+      <a href="https://botchain.ai" target="_blank" rel="noopener">BOT Chain Website ↗</a>
+      <a href="https://scan.botchain.ai/" target="_blank" rel="noopener">BOTScan Explorer ↗</a>
+    </div>
+  </footer>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script type="importmap">{"imports":{"ethers":"https://esm.sh/ethers@6.13.2"}}</script>
+<script type="module">
+import { ethers } from 'ethers';
+
+const ABI = [
+  'function createCampaign(string title, string description, uint256 goal, uint256 durationSeconds) returns (uint256)',
+  'function pledge(uint256 cid) payable',
+  'function release(uint256 cid)',
+  'function refund(uint256 cid)',
+  'function campaignCount() view returns (uint256)',
+  'function campaigns(uint256) view returns (address creator, string title, string description, uint256 goal, uint256 raised, uint256 deadline, bool released, bool refunding, uint256 backerCount)',
+  'function backed(uint256, address) view returns (uint256)',
+  'function refundedOf(uint256, address) view returns (bool)'
+];
+
+const NET = { 677: { rpc: 'https://rpc.botchain.ai', hex: '0x2a5', label: 'BOT Chain Mainnet' }, 968: { rpc: 'https://rpc.bohr.life', hex: '0x3c8', label: 'BOT Chain Testnet' } };
+const CA = { 677: '0x6a1A0ddb22358597609aA6f9a70deE61818e13Ff', 968: '' };
+
+const $ = (s) => document.querySelector(s);
+const bot = (v, d = 4) => Number(ethers.formatEther(v)).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const short = (a) => (!a ? '—' : a.slice(0, 6) + '…' + a.slice(-4));
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+let chainId = 677, acct = null, signer = null, CS = [], MINE = {}, busy = false;
+const ro = { 677: new ethers.JsonRpcProvider(NET[677].rpc) };
+let _t;
+function toast(m, bad) { const t = $('#toast'); t.textContent = m; t.classList.toggle('err', !!bad); t.classList.add('on'); clearTimeout(_t); _t = setTimeout(() => t.classList.remove('on'), 5000); }
+
+function reader() { return CA[chainId] ? new ethers.Contract(CA[chainId], ABI, new ethers.JsonRpcProvider(NET[chainId].rpc)) : null; }
+const STOP = Symbol('stop');
+async function collect(fn, chunk = 8, cap = 400) {
+  const out = [];
+  for (let base = 0; base < cap; base += chunk) {
+    const batch = await Promise.all(Array.from({ length: chunk }, (_, k) =>
+      Promise.resolve().then(() => fn(base + k)).catch(() => STOP)));
+    for (const r of batch) { if (r === STOP) return out; out.push(r); }
+  }
+  return out;
+}
+
+async function byCount(count, fn, chunk = 10) {
+  const out = [];
+  for (let base = 0; base < count; base += chunk) {
+    const end = Math.min(count, base + chunk);
+    const part = await Promise.all(Array.from({ length: end - base }, (_, k) => fn(base + k)));
+    out.push(...part);
+  }
+  return out;
+}
+
+function injected() { return window.ethereum || window.okxwallet || null; }
+
+async function ensureChain() {
+  const eth = injected(); if (!eth) return;
+  const n = NET[chainId];
+  try { await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: n.hex }] }); }
+  catch (e) {
+    if (e && (e.code === 4902 || e.code === -32603 || /unrecognized|not added|unknown/i.test(e.message || ''))) {
+      await eth.request({ method: 'wallet_addEthereumChain', params: [{ chainId: n.hex, chainName: n.label, nativeCurrency: { name: 'BOT', symbol: 'BOT', decimals: 18 }, rpcUrls: [n.rpc], blockExplorerUrls: ['https://scan.botchain.ai'] }] });
+    }
+  }
+}
+
+async function connect() {
+  const eth = injected();
+  if (!eth) { toast('No browser wallet found. Install MetaMask or OKX Wallet, then reload.', true); return; }
+  try {
+    await eth.request({ method: 'eth_requestAccounts' });
+    await ensureChain();
+    signer = await new ethers.BrowserProvider(eth).getSigner();
+    acct = await signer.getAddress();
+    $('#addr').textContent = short(acct);
+    $('#dot').classList.add('on');
+    $('#connect').textContent = 'Disconnect';
+    if (eth.on) eth.on('accountsChanged', () => location.reload());
+    await load();
+    toast('Connected');
+  } catch (e) { toast('Connect failed: ' + ((e && (e.shortMessage || e.message)) || e), true); }
+}
+$('#connect').onclick = () => (acct ? location.reload() : connect());
+$('#n677').onclick = () => { chainId = 677; paint(); load(); };
+$('#n968').onclick = () => { if (!CA[968]) { toast('Testnet deployment pending.', true); return; } chainId = 968; paint(); load(); };
+function paint() { $('#n677').classList.toggle('on', chainId === 677); $('#n968').classList.toggle('on', chainId === 968); }
+
+function statusOf(c) {
+  const now = Date.now() / 1000;
+  if (c.released) return ['funded', 'Released'];
+  if (c.raised >= c.goal) return ['funded', 'Goal met'];
+  if (now >= c.deadline) return ['failed', 'Missed'];
+  return ['open', 'Open'];
+}
+
+function progressOf(c) {
+  if (c.goal === 0n) return 0;
+  const p = Number((c.raised * 10000n) / c.goal) / 100;
+  return Math.min(100, p);
+}
+
+async function load() {
+  const c = reader(); if (!c) return;
+  try {
+    const n = Number(await c.campaignCount());
+    CS = await byCount(n, async (i) => {
+      const x = await c.campaigns(i);
+      return { id: i, creator: x.creator, title: x.title, desc: x.description, goal: x.goal, raised: x.raised, deadline: Number(x.deadline), released: x.released, backers: Number(x.backerCount) };
+    });
+  } catch (e) { CS = []; }
+  MINE = {};
+  if (acct && CS.length) {
+    const rows = await Promise.all(CS.map(async (x) => {
+      try {
+        const [amt, done] = await Promise.all([c.backed(x.id, acct), c.refundedOf(x.id, acct)]);
+        return amt > 0n ? [x.id, { amt, refunded: done }] : null;
+      } catch (e) { return null; }
+    }));
+    for (const r of rows) if (r) MINE[r[0]] = r[1];
+  }
+  render();
+}
+
+function render() {
+  const totalRaised = CS.reduce((s, x) => s + x.raised, 0n);
+  const totalBackers = CS.reduce((s, x) => s + x.backers, 0);
+  $('#sCamps').textContent = CS.length;
+  $('#sRaised').textContent = bot(totalRaised, 3);
+  $('#sBackers').textContent = totalBackers;
+  $('#countLabel').textContent = CS.length + ' on this network';
+
+  const feat = CS.slice().sort((a, b) => Number(b.raised) - Number(a.raised))[0];
+  $('#featured').innerHTML = feat ? (function () {
+    const st = statusOf(feat);
+    const p = progressOf(feat);
+    return '<div class="featured"><div>'
+      + '<div class="tagline">Most funded · campaign #' + feat.id + '</div>'
+      + '<h2>' + esc(feat.title) + '</h2>'
+      + '<p>' + esc(feat.desc || 'No description provided.') + '</p>'
+      + '</div><div class="side">'
+      + '<div class="bignum">' + bot(feat.raised, 4) + '<small> / ' + bot(feat.goal, 4) + ' BOT</small></div>'
+      + '<div class="bar"><i style="width:' + p + '%"></i></div>'
+      + '<div class="pctrow"><span>' + p.toFixed(1) + '% funded</span><span>' + feat.backers + ' backers</span></div>'
+      + '<div class="pctrow"><span>Deadline ' + new Date(feat.deadline * 1000).toLocaleString() + '</span><span>' + st[1] + '</span></div>'
+      + '</div></div>';
+  })() : '';
+
+  const g = $('#grid');
+  if (!CS.length) { g.innerHTML = '<div class="empty">No campaigns yet. Publish the first one below.</div>'; return; }
+  g.innerHTML = CS.map((x) => {
+    const st = statusOf(x);
+    const p = progressOf(x);
+    const mine = MINE[x.id];
+    const expired = Date.now() / 1000 >= x.deadline;
+    const isCreator = acct && x.creator.toLowerCase() === acct.toLowerCase();
+    const canRelease = isCreator && !x.released && x.raised >= x.goal;
+    const canRefund = mine && !mine.refunded && !x.released && expired && x.raised < x.goal;
+    return '<article class="camp">'
+      + '<div class="top"><span class="num">Campaign #' + x.id + '</span><span class="badge ' + st[0] + '">' + st[1] + '</span></div>'
+      + '<h3>' + esc(x.title) + '</h3>'
+      + '<div class="desc">' + esc(x.desc || 'No description provided.') + '</div>'
+      + '<div class="bignum">' + bot(x.raised, 4) + '<small> / ' + bot(x.goal, 4) + ' BOT</small></div>'
+      + '<div class="bar"><i style="width:' + p + '%"></i></div>'
+      + '<div class="pctrow"><span>' + p.toFixed(1) + '%</span><span>' + x.backers + ' backer' + (x.backers === 1 ? '' : 's') + '</span></div>'
+      + '<div class="pctrow"><span class="mono">' + short(x.creator) + '</span><span>' + (expired ? 'closed' : 'ends ' + new Date(x.deadline * 1000).toLocaleDateString()) + '</span></div>'
+      + (mine ? '<div class="pctrow" style="color:var(--teal);font-weight:600"><span>You pledged ' + bot(mine.amt) + ' BOT</span><span>' + (mine.refunded ? 'refunded' : 'active') + '</span></div>' : '')
+      + '<div class="actions">'
+      + (!expired && !x.released ? '<div class="assign"><input type="number" step="0.000001" min="0.000001" placeholder="BOT" data-amt="' + x.id + '"><button class="btn" data-pledge="' + x.id + '">Pledge</button></div>' : '')
+      + (canRelease ? '<button class="btn teal" data-release="' + x.id + '">Release ' + bot(x.raised, 4) + ' BOT</button>' : '')
+      + (canRefund ? '<button class="btn line" data-refund="' + x.id + '">Refund ' + bot(mine.amt) + ' BOT</button>' : '')
+      + '</div></article>';
+  }).join('');
+}
+
+async function withSigner(fn) {
+  if (!signer) { await connect(); if (!signer) return; }
+  if (busy) { toast('A transaction is already in flight.'); return; }
+  busy = true;
+  try { await fn(); } finally { busy = false; }
+}
+
+async function send(method, args, value) {
+  const c = new ethers.Contract(CA[chainId], ABI, signer);
+  const tx = await c[method](...args, value !== undefined ? { value } : {});
+  toast('Sent ' + tx.hash.slice(0, 12) + '… waiting');
+  const rc = await tx.wait();
+  if (rc.status !== 1) throw new Error('reverted');
+  toast('Confirmed in block ' + rc.blockNumber);
+  await load();
+}
+
+$('#grid').addEventListener('click', async (e) => {
+  const pl = e.target.closest('[data-pledge]');
+  const rl = e.target.closest('[data-release]');
+  const rf = e.target.closest('[data-refund]');
+  if (pl) {
+    const id = Number(pl.dataset.pledge);
+    const inp = document.querySelector('[data-amt="' + id + '"]');
+    const v = Number(inp && inp.value);
+    if (!v || v <= 0) { toast('Enter a pledge amount first.', true); return; }
+    await withSigner(async () => { try { await send('pledge', [id], ethers.parseEther(String(v))); } catch (err) { toast('Pledge failed: ' + ((err && (err.shortMessage || err.message)) || err), true); } });
+  }
+  if (rl) await withSigner(async () => { try { await send('release', [Number(rl.dataset.release)]); } catch (err) { toast('Release failed: ' + ((err && (err.shortMessage || err.message)) || err), true); } });
+  if (rf) await withSigner(async () => { try { await send('refund', [Number(rf.dataset.refund)]); } catch (err) { toast('Refund failed: ' + ((err && (err.shortMessage || err.message)) || err), true); } });
+});
+
+$('#createBtn').onclick = async () => {
+  const title = $('#cTitle').value.trim();
+  const desc = $('#cDesc').value.trim();
+  const goal = Number($('#cGoal').value);
+  const dur = Number($('#cDur').value);
+  if (!title) { toast('Campaigns need a title.', true); return; }
+  if (!goal || goal <= 0) { toast('Goal must be greater than zero.', true); return; }
+  if (!Number.isInteger(dur) || dur <= 0) { toast('Window must be a whole number of seconds.', true); return; }
+  await withSigner(async () => {
+    try {
+      await send('createCampaign', [title, desc, ethers.parseEther(String(goal)), dur]);
+      $('#cTitle').value = ''; $('#cDesc').value = ''; $('#cGoal').value = ''; $('#cDur').value = '';
+    } catch (err) { toast('Publish failed: ' + ((err && (err.shortMessage || err.message)) || err), true); }
+  });
+};
+
+load();
+setInterval(load, 45000);
+</script>
+</body>
+</html>
