@@ -52,7 +52,9 @@ contract Crowdfunding is ReentrancyGuard {
         Campaign storage c = campaigns[cid];
         require(!c.released && !c.refunding, "Campaign closed");
         require(msg.value > 0, "Zero pledge");
-        require(block.timestamp < c.deadline || c.raised < c.goal, "Deadline passed");
+        // FIX: pledges must close at deadline — the old `|| raised < goal` arm let
+        // users pledge into failed campaigns forever, poisoning the refund state.
+        require(block.timestamp < c.deadline, "Deadline passed");
         if (backed[cid][msg.sender] == 0) c.backerCount += 1;
         backed[cid][msg.sender] += msg.value;
         c.raised += msg.value;
@@ -66,7 +68,9 @@ contract Crowdfunding is ReentrancyGuard {
         require(c.raised >= c.goal, "Goal not met");
         c.released = true;
         uint256 amount = c.raised;
-        payable(c.creator).transfer(amount);
+        // FIX: call{value} instead of transfer (2300 gas cap); revert on failure.
+        (bool ok, ) = payable(c.creator).call{value: amount}("");
+        require(ok, "Release transfer failed");
         emit Released(cid, c.creator, amount);
     }
 
@@ -79,7 +83,9 @@ contract Crowdfunding is ReentrancyGuard {
         uint256 amount = backed[cid][msg.sender];
         require(amount > 0, "Nothing to refund");
         refundedOf[cid][msg.sender] = true;
-        payable(msg.sender).transfer(amount);
+        // FIX: call{value} instead of transfer.
+        (bool ok, ) = payable(msg.sender).call{value: amount}("");
+        require(ok, "Refund transfer failed");
         emit Refunded(cid, msg.sender, amount);
     }
 
